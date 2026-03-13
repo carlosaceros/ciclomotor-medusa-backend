@@ -49,7 +49,10 @@ export const upsertZohoProductsStep = createStep(
             title: item.name,
             description: item.description,
             external_id: item.item_id, // Key joining logic
-            options: [{ title: "Default Option" }],
+            options: [{ 
+              title: "Default Option",
+              values: ["Default"] 
+            }],
             variants: [
               {
                 title: "Default",
