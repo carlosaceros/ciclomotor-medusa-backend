@@ -28,55 +28,72 @@ export const upsertZohoProductsStep = createStep(
     const processedProductIds: string[] = []
 
     for (const item of zohoItems) {
-      // 1. Check if product already exists by external_id
-      const existingProducts = await productModuleService.listProducts({
+      // 1. Skip items with empty SKU as Medusa requires unique SKUs
+      if (!item.sku || item.sku.trim() === "") {
+        console.warn(`Skipping Zoho Item ${item.item_id} (${item.name}) because it has no SKU.`)
+        continue
+      }
+
+      console.log(`Processing Zoho Item: ${item.name} (SKU: ${item.sku})`)
+
+      // 2. Lookup existing product
+      // We check by external_id (Zoho item_id) first
+      let existingProducts = await productModuleService.listProducts({
         external_id: item.item_id
       })
-      const existingProduct = existingProducts[0]
+      
+      let existingProduct = existingProducts[0]
+
+      // Fallback: Check by SKU if not found by external_id
+      if (!existingProduct) {
+        const productsBySku = await productModuleService.listProducts({
+          variants: { sku: item.sku }
+        })
+        existingProduct = productsBySku[0]
+        
+        if (existingProduct) {
+          console.log(`Found existing product ${existingProduct.id} by SKU matching Zoho Item ${item.item_id}. Updating external_id.`)
+        }
+      }
       
       if (existingProduct) {
-        // Ensure to cast or rely on Medusa core typing
+        // Update Product
         await productModuleService.updateProducts(existingProduct.id, {
           title: item.name,
           description: item.description,
+          external_id: item.item_id, // Ensure external_id is linked
         })
         processedProductIds.push(existingProduct.id)
       } else {
         // Create Product
-        // In Medusa v2, you can create a product with its variant and price inline
-        const createdProduct = await productModuleService.createProducts([
-          {
-            title: item.name,
-            description: item.description,
-            external_id: item.item_id, // Key joining logic
-            options: [{ 
-              title: "Default Option",
-              values: ["Default"] 
-            }],
-            variants: [
-              {
-                title: "Default",
-                sku: item.sku,
-                manage_inventory: true,
-                // The pricing data structure might vary depending on whether Pricing Module is used exclusively
-                // but standard createProducts payload still often accepts prices
-                options: {
-                  "Default Option": "Default"
+        try {
+          const createdProduct = await productModuleService.createProducts([
+            {
+              title: item.name,
+              description: item.description,
+              external_id: item.item_id,
+              options: [{ 
+                title: "Default Option",
+                values: ["Default"] 
+              }],
+              variants: [
+                {
+                  title: "Default",
+                  sku: item.sku,
+                  manage_inventory: true,
+                  options: {
+                    "Default Option": "Default"
+                  }
                 }
-              }
-            ]
-          }
-        ])
-        
-        processedProductIds.push(createdProduct[0].id)
+              ]
+            }
+          ])
+          processedProductIds.push(createdProduct[0].id)
+        } catch (error) {
+          console.error(`Failed to create product for Zoho Item ${item.item_id} (${item.sku}):`, error.message)
+          // We continue to next item instead of crashing the whole workflow
+        }
       }
-
-      // NOTE: For true inventory sync (`actual_available_stock`) and prices (`rate`), 
-      // Medusa v2 strictly isolates these to the Inventory and Pricing modules. 
-      // You would dispatch further workflow steps or module calls here:
-      //
-      // e.g. inventoryModuleService.createInventoryLevels(...)
-      // e.g. pricingModuleService.createPrices(...)
     }
     
     return new StepResponse({ processedProductIds }, null)
