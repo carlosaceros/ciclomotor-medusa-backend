@@ -5,14 +5,15 @@ import {
   WorkflowResponse
 } from "@medusajs/framework/workflows-sdk"
 import { Modules } from "@medusajs/framework/utils"
-// Import type from our setup, but we don't necessarily need it for JS runtime if handled by any
-import type { ZohoItem, ZohoClientService } from "../services/zoho-client"
+import { ZohoClientService } from "../services/zoho-client"
+import type { ZohoItem } from "../services/zoho-client"
 
 export const fetchZohoItemsStep = createStep(
   "fetch-zoho-items",
   async (_, { container }) => {
-    // Resolve custom service
-    const zohoClientService = container.resolve<ZohoClientService>("zohoClientService")
+  async (_, { container }) => {
+    // Instantiate custom service directly (bypassing DI limits for now to avoid resolution errors)
+    const zohoClientService = new ZohoClientService()
     
     const items = await zohoClientService.fetchItems()
     return new StepResponse(items, null)
