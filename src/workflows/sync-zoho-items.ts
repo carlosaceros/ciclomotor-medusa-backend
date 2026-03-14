@@ -11,7 +11,6 @@ import type { ZohoItem } from "../services/zoho-client"
 export const fetchZohoItemsStep = createStep(
   "fetch-zoho-items",
   async (_, { container }) => {
-  async (_, { container }) => {
     // Instantiate custom service directly (bypassing DI limits for now to avoid resolution errors)
     const zohoClientService = new ZohoClientService()
     
