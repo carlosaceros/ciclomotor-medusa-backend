@@ -22,10 +22,10 @@
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
   },
   "dependencies": {
-    "@medusajs/admin-sdk": "2.13.1",
-    "@medusajs/cli": "2.13.1",
-    "@medusajs/framework": "2.13.1",
-    "@medusajs/medusa": "2.13.1",
+    "@medusajs/admin-sdk": "2.13.4",
+    "@medusajs/cli": "2.13.4",
+    "@medusajs/framework": "2.13.4",
+    "@medusajs/medusa": "2.13.4",
     "axios": "^1.13.6",
     "posthog-node": "^5.28.1",
     "react": "^18.3.1",
